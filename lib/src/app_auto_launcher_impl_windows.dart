@@ -2,13 +2,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:launch_at_startup/src/app_auto_launcher.dart';
-import 'package:win32_registry/win32_registry.dart'
-    if (dart.library.html) 'noop.dart';
+import 'package:win32_registry/win32_registry.dart' if (dart.library.html) 'noop.dart';
 
 bool isRunningInMsix(String packageName) {
   final String resolvedExecutable = Platform.resolvedExecutable;
-  final bool isMsix = resolvedExecutable.contains('WindowsApps') &&
-      resolvedExecutable.contains(packageName);
+  final bool isMsix = resolvedExecutable.contains('WindowsApps') && resolvedExecutable.contains(packageName);
   return isMsix;
 }
 
@@ -31,8 +29,7 @@ class AppAutoLauncherImplWindows extends AppAutoLauncher {
 
   RegistryKey get _startupApprovedRegKey => Registry.openPath(
         RegistryHive.currentUser,
-        path:
-            r'Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run',
+        path: r'Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run',
         desiredAccessRights: AccessRights.allAccess,
       );
 
@@ -40,7 +37,7 @@ class AppAutoLauncherImplWindows extends AppAutoLauncher {
 
   @override
   Future<bool> isEnabled() async {
-    String? value = _regKey.getValueAsString(appName);
+    String? value = _regKey.getStringValue(appName);
 
     return value == _registryValue && await _isStartupApproved();
   }
@@ -58,8 +55,7 @@ class AppAutoLauncherImplWindows extends AppAutoLauncher {
     // "2" as a first byte in this register means that the autostart is enabled
     bytes[0] = 2;
 
-    _startupApprovedRegKey
-        .createValue(RegistryValue.binary(appName, bytes));
+    _startupApprovedRegKey.createValue(RegistryValue.binary(appName, bytes));
 
     return true;
   }
@@ -81,13 +77,13 @@ class AppAutoLauncherImplWindows extends AppAutoLauncher {
       return true;
     }
 
-    final data = value.data;
+    final dataType = value.type;
 
-    if (data is! Uint8List || data.isEmpty) {
+    if (dataType != RegistryValueType.binary) {
       return true;
     }
 
-    return data[0].isEven;
+    return _startupApprovedRegKey.getBinaryValue(appName)![0].isEven;
   }
 
   void _removeValue(RegistryKey key, String value) {
